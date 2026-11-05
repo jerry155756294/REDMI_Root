@@ -1,0 +1,46 @@
+name: Build REDMI_Root
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK
+        run: sdkmanager "platform-tools" "ndk;29.0.14206865"
+
+      - name: Build ghostlock
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/29.0.14206865
+        run: |
+          chmod +x build.sh tools/reroot.sh
+          ./build.sh
+          file build/native/ghostlock
+          sha256sum build/native/ghostlock
+
+      - name: Package runtime files
+        run: |
+          mkdir -p artifact
+          cp build/native/ghostlock artifact/
+          cp profiles/*.bin artifact/
+          cp tools/reroot.sh artifact/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: REDMI_Root-dizi
+          path: artifact/
+          retention-days: 7
